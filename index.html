@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#059669">
+    <title>حاسبة مكافأة التعليم المستمر - منطقة مكة</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap');
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; overflow-x: hidden; }
+        input[type="number"], input[type="date"], input[type="text"] {
+            font-family: system-ui, -apple-system, sans-serif;
+            font-variant-numeric: tabular-nums;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .animate-fade-in { animation: fadeIn .25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        input[type="date"] { min-height: 44px; -webkit-appearance: none; appearance: none; }
+        .deduction-item { transition: background .15s; }
+        .deduction-item:hover { background: rgba(255,255,255,.05); }
+        @media (max-width: 640px) { .modal-content { max-height: 90vh; overflow-y: auto; } }
+        .chip-absence { background: #7f1d1d; color: #fecaca; border-right: 3px solid #ef4444; }
+        .chip-holiday { background: #78350f; color: #fde68a; border-right: 3px solid #f59e0b; }
+        .mode-btn { background: #fff; color: #374151; border-color: #d1d5db; }
+        .mode-btn.active { background: #059669; color: #fff; border-color: #059669; }
+        .holiday-badge { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+        /* حجم الخط */
+        body { zoom: var(--ui-zoom, 1); }
+
+        /* شريط الأدوات في الترويسة */
+        .tb-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 36px; padding: 0 .8rem;
+                  border-radius: .7rem; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28);
+                  color: #fff; font-size: .75rem; font-weight: 700; transition: background .15s; white-space: nowrap; }
+        .tb-btn:hover { background: rgba(255,255,255,.26); }
+        .tb-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .tb-group { display: inline-flex; border-radius: .7rem; overflow: hidden; border: 1px solid rgba(255,255,255,.28); }
+        .tb-group .tb-btn { border: 0; border-radius: 0; min-width: 38px; padding: 0 .55rem; }
+        .tb-group .tb-btn + .tb-btn { border-inline-start: 1px solid rgba(255,255,255,.28); }
+
+        /* بطاقة العد التنازلي */
+        .cd-card { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.25); backdrop-filter: blur(6px); }
+        .cd-num { background: #fff; color: #047857; }
+
+        /* شارة الأسبوع الحالي */
+        .cw-badge { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; justify-content: center;
+                    background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; border-radius: 1rem;
+                    padding: .45rem .9rem; font-size: .75rem; box-shadow: 0 4px 14px rgba(79,70,229,.28); }
+        .cw-dot { width: .55rem; height: .55rem; border-radius: 9999px; background: #a7f3d0; box-shadow: 0 0 0 0 rgba(167,243,208,.7); animation: cwPulse 1.8s infinite; }
+        @keyframes cwPulse { 0% { box-shadow: 0 0 0 0 rgba(167,243,208,.7); } 70% { box-shadow: 0 0 0 7px rgba(167,243,208,0); } 100% { box-shadow: 0 0 0 0 rgba(167,243,208,0); } }
+        option.cw-option { background: #ede9fe; color: #4c1d95; font-weight: 700; }
+
+        /* تنبيه الأرقام غير المعتادة */
+        .warn-input { border-color: #f59e0b !important; background: #fffbeb !important; box-shadow: 0 0 0 2px rgba(245,158,11,.25); }
+        .warn-box { background: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
+
+        /* نوع الغياب */
+        .abs-type { border: 2px solid #e5e7eb; background: #fff; color: #374151; }
+        .abs-type.active[data-abstype="absence"] { border-color: #e11d48; background: #fff1f2; color: #9f1239; }
+        .abs-type.active[data-abstype="course"] { border-color: #0284c7; background: #f0f9ff; color: #075985; }
+        .course-item { border-color: #bae6fd !important; }
+
+        /* ===== الوضع الليلي ===== */
+        html.dark { color-scheme: dark; }
+        html.dark body { background-color: #0b1220; color: #e5e7eb; }
+        html.dark .bg-white { background-color: #111827; }
+        html.dark .bg-gray-50 { background-color: #141d2e; }
+        html.dark .bg-gray-200 { background-color: #374151; }
+        html.dark .hover\:bg-gray-300:hover { background-color: #4b5563; }
+        html.dark .bg-amber-50 { background-color: rgba(245,158,11,.08); }
+        html.dark .bg-amber-100 { background-color: rgba(245,158,11,.16); }
+        html.dark .hover\:bg-amber-100:hover, html.dark .hover\:bg-amber-200:hover { background-color: rgba(245,158,11,.24); }
+        html.dark .bg-rose-50 { background-color: rgba(244,63,94,.08); }
+        html.dark .hover\:bg-rose-50:hover, html.dark .hover\:bg-rose-100:hover { background-color: rgba(244,63,94,.18); }
+        html.dark .bg-sky-50 { background-color: rgba(14,165,233,.08); }
+        html.dark .border-gray-200 { border-color: #1f2937; }
+        html.dark .border-gray-300 { border-color: #374151; }
+        html.dark .border-amber-200, html.dark .border-amber-300 { border-color: rgba(245,158,11,.35); }
+        html.dark .border-amber-400 { border-color: rgba(245,158,11,.55); }
+        html.dark .border-rose-100, html.dark .border-rose-200, html.dark .border-rose-300 { border-color: rgba(244,63,94,.32); }
+        html.dark .border-sky-200 { border-color: rgba(14,165,233,.32); }
+        html.dark .text-gray-800 { color: #f3f4f6; }
+        html.dark .text-gray-700 { color: #e5e7eb; }
+        html.dark .text-gray-600 { color: #cbd5e1; }
+        html.dark .text-gray-500 { color: #94a3b8; }
+        html.dark .text-gray-400 { color: #64748b; }
+        html.dark .text-amber-700 { color: #fbbf24; }
+        html.dark .text-amber-800 { color: #fcd34d; }
+        html.dark .text-amber-900 { color: #fde68a; }
+        html.dark .text-rose-600 { color: #fb7185; }
+        html.dark .text-rose-700 { color: #fda4af; }
+        html.dark .text-rose-800 { color: #fecdd3; }
+        html.dark .text-sky-700, html.dark .text-sky-800 { color: #7dd3fc; }
+        html.dark .text-emerald-700 { color: #34d399; }
+        html.dark .shadow-xl { box-shadow: 0 20px 40px rgba(0,0,0,.45); }
+        html.dark input, html.dark select { color: #f3f4f6; }
+        html.dark option { background: #111827; color: #f3f4f6; }
+        html.dark option.cw-option { background: #4c1d95; color: #fff; }
+        html.dark .mode-btn { background: #111827; color: #e5e7eb; border-color: #374151; }
+        html.dark .mode-btn.active { background: #059669; color: #fff; border-color: #059669; }
+        html.dark .holiday-badge { background: rgba(245,158,11,.12); color: #fde68a; border-color: rgba(245,158,11,.35); }
+        html.dark .holiday-badge .text-amber-900 { color: #fde68a; }
+        html.dark .cd-num { background: #0b1220; color: #34d399; }
+        html.dark .warn-input { background: rgba(245,158,11,.12) !important; }
+        html.dark .warn-box { background: rgba(245,158,11,.1); color: #fcd34d; border-color: rgba(245,158,11,.4); }
+        html.dark .abs-type { background: #111827; color: #e5e7eb; border-color: #374151; }
+        html.dark .abs-type.active[data-abstype="absence"] { background: rgba(244,63,94,.14); color: #fecdd3; border-color: #f43f5e; }
+        html.dark .abs-type.active[data-abstype="course"] { background: rgba(14,165,233,.14); color: #bae6fd; border-color: #0ea5e9; }
+        html.dark .course-item { border-color: rgba(14,165,233,.35) !important; }
+        html.dark footer p { color: #64748b; }
+    </style>
+</head>
+<body class="p-3 sm:p-4 md:p-8 text-gray-800 flex flex-col min-h-screen">
+
+    <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden flex-1 w-full">
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 px-4 pt-3.5 pb-5 sm:px-6 sm:pt-4 sm:pb-6 text-white">
+            <!-- شريط الأدوات -->
+            <div class="flex items-center justify-between gap-2">
+                <button type="button" onclick="openHolidaysModal()" class="tb-btn" title="الاطلاع على أيام الإجازات">
+                    <span>📋</span><span>أيام الإجازات</span>
+                </button>
+                <div class="flex items-center gap-1.5">
+                    <div class="tb-group" role="group" aria-label="حجم الخط">
+                        <button type="button" id="fontDown" onclick="changeFont(-1)" class="tb-btn" aria-label="تصغير الخط">أ−</button>
+                        <button type="button" id="fontUp" onclick="changeFont(1)" class="tb-btn" aria-label="تكبير الخط">أ+</button>
+                    </div>
+                    <button type="button" id="themeBtn" onclick="toggleTheme()" class="tb-btn" aria-label="الوضع الليلي">🌙</button>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <h1 class="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">حاسبة مكافأة التعليم المستمر الليلية</h1>
+                <p class="text-emerald-100 mt-1 text-xs sm:text-sm">منطقة مكة المكرمة | العام الدراسي 1448هـ (2026 - 2027م)</p>
+            </div>
+
+            <!-- العد التنازلي للإجازة القادمة -->
+            <div id="countdown" class="hidden mt-4 mx-auto max-w-md"></div>
+        </div>
+
+        <div class="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+            <div class="lg:col-span-2 space-y-5">
+
+                <!-- Step 1 -->
+                <div class="bg-gray-50 p-4 sm:p-5 rounded-xl border border-gray-200">
+                    <h2 class="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <span class="bg-emerald-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm shrink-0">1</span>
+                        فترة الاحتساب (بالأسابيع الدراسية)
+                    </h2>
+                    <div class="grid grid-cols-3 gap-1.5 mb-3">
+                        <button type="button" data-mode="year" onclick="setMode('year')" class="mode-btn py-2 px-1.5 rounded-lg border-2 text-xs font-semibold leading-snug min-h-[48px] transition">من بداية العام حتى اليوم</button>
+                        <button type="button" data-mode="since" onclick="setMode('since')" class="mode-btn py-2 px-1.5 rounded-lg border-2 text-xs font-semibold leading-snug min-h-[48px] transition">من أسبوع معين حتى اليوم</button>
+                        <button type="button" data-mode="custom" onclick="setMode('custom')" class="mode-btn py-2 px-1.5 rounded-lg border-2 text-xs font-semibold leading-snug min-h-[48px] transition">فترة محددة</button>
+                    </div>
+                    <div id="curWeekBadge" class="hidden mb-3 flex justify-center"></div>
+                    <div id="weekSelects" class="grid grid-cols-2 gap-3">
+                        <div id="startWrap">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">من الأسبوع:</label>
+                            <select id="startWeek" class="w-full p-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white" onchange="handleRangeChange()"></select>
+                        </div>
+                        <div id="endWrap">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">إلى الأسبوع:</label>
+                            <select id="endWeek" class="w-full p-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white" onchange="handleRangeChange()"></select>
+                        </div>
+                    </div>
+                    <div id="rangeInfo" class="text-xs text-gray-600 mt-2 text-center font-semibold"></div>
+                    <div id="todayInfo" class="text-[11px] text-gray-400 mt-1 text-center"></div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="bg-amber-50 p-4 sm:p-5 rounded-xl border border-amber-200">
+                    <h2 class="text-base font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <span class="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm shrink-0">2</span>
+                        هل تغيّر جدولك خلال هذه الفترة؟
+                    </h2>
+                    <div class="flex gap-2 mt-3">
+                        <button type="button" id="btnNoChange" onclick="setScheduleChanged(false)"
+                            class="flex-1 py-2.5 px-3 rounded-lg font-semibold transition border-2 min-h-[44px] bg-emerald-600 text-white border-emerald-600 text-sm">لا، ثابت</button>
+                        <button type="button" id="btnYesChange" onclick="setScheduleChanged(true)"
+                            class="flex-1 py-2.5 px-3 rounded-lg font-semibold transition border-2 min-h-[44px] bg-white text-gray-700 border-gray-300 hover:border-amber-500 text-sm">نعم، تغيّر</button>
+                    </div>
+                </div>
+
+                <!-- Previous Schedules -->
+                <div id="oldScheduleSection" class="hidden space-y-3">
+                    <div id="prevList" class="space-y-3"></div>
+                    <button type="button" onclick="addPrev()" class="w-full text-sm font-semibold py-2.5 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 min-h-[44px]">➕ إضافة جدول سابق آخر</button>
+                    <p class="text-[10px] text-amber-700 text-center">الأيام التي لا تقع ضمن أي جدول سابق تُحسب على الجدول الحالي. أيام الإجازات تتبع جدول آخر يوم دراسة قبلها.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="bg-gray-50 p-4 sm:p-5 rounded-xl border border-gray-200">
+                    <h2 class="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <span class="bg-emerald-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm shrink-0" id="currentStepNum">3</span>
+                        عدد الحصص (الجدول الحالي)
+                    </h2>
+                    <p class="text-xs text-gray-500 mb-3">أدخل نصابك لكل يوم من أيام الأسبوع.</p>
+                    <div class="grid grid-cols-5 gap-1.5 text-center">
+                        <div><label class="text-xs text-gray-600 block mb-1">أحد</label><input type="text" maxlength="2" autocomplete="off" data-num id="curSun" min="0" max="20" placeholder="0" inputmode="numeric" class="w-full p-2 text-base border border-gray-300 rounded text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none" oninput="calculateTotal()" onfocus="this.select()"></div>
+                        <div><label class="text-xs text-gray-600 block mb-1">إثنين</label><input type="text" maxlength="2" autocomplete="off" data-num id="curMon" min="0" max="20" placeholder="0" inputmode="numeric" class="w-full p-2 text-base border border-gray-300 rounded text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none" oninput="calculateTotal()" onfocus="this.select()"></div>
+                        <div><label class="text-xs text-gray-600 block mb-1">ثلاثاء</label><input type="text" maxlength="2" autocomplete="off" data-num id="curTue" min="0" max="20" placeholder="0" inputmode="numeric" class="w-full p-2 text-base border border-gray-300 rounded text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none" oninput="calculateTotal()" onfocus="this.select()"></div>
+                        <div><label class="text-xs text-gray-600 block mb-1">أربعاء</label><input type="text" maxlength="2" autocomplete="off" data-num id="curWed" min="0" max="20" placeholder="0" inputmode="numeric" class="w-full p-2 text-base border border-gray-300 rounded text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none" oninput="calculateTotal()" onfocus="this.select()"></div>
+                        <div><label class="text-xs text-gray-600 block mb-1">خميس</label><input type="text" maxlength="2" autocomplete="off" data-num id="curThu" min="0" max="20" placeholder="0" inputmode="numeric" class="w-full p-2 text-base border border-gray-300 rounded text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none" oninput="calculateTotal()" onfocus="this.select()"></div>
+                    </div>
+                    <div id="curWarn" class="hidden mt-3 warn-box text-xs p-2.5 rounded-lg font-semibold"></div>
+                    <div id="coveredInfo" class="hidden mt-3 text-xs text-amber-800 bg-amber-100 p-2 rounded border-r-2 border-amber-500"></div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="bg-rose-50 p-4 sm:p-5 rounded-xl border border-rose-200">
+                    <h2 class="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <span class="bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm shrink-0" id="absenceStepNum">4</span>
+                        أيام الغياب (إن وجدت)
+                    </h2>
+                    <div id="absencesContainer" class="space-y-2">
+                        <div id="noAbsencesMsg" class="text-center text-gray-400 text-sm italic p-3 bg-white rounded-lg border border-rose-100">لا توجد أيام غياب</div>
+                    </div>
+                    <button onclick="openAbsenceModal()" class="w-full mt-3 text-xs sm:text-sm bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white px-4 py-2.5 rounded-lg transition shadow-sm cursor-pointer min-h-[44px] font-semibold">➕ إضافة يوم غياب</button>
+                    <p class="text-[11px] text-gray-500 mt-2 text-center">🎓 حضور الدورة التدريبية المسائية لا يُخصم، ويمكنك تسجيله من نفس الزر.</p>
+                </div>
+
+                <!-- Save (optional) -->
+                <div class="bg-sky-50 p-4 sm:p-5 rounded-xl border border-sky-200">
+                    <div class="flex gap-2">
+                        <button type="button" id="saveBtn" onclick="saveData()" class="flex-1 text-sm bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white px-4 py-2.5 rounded-lg transition shadow-sm min-h-[44px] font-semibold">💾 حفظ جدولي على هذا الجهاز</button>
+                        <button type="button" id="clearSavedBtn" onclick="clearSaved()" class="hidden text-xs bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 px-3 py-2.5 rounded-lg transition min-h-[44px] font-semibold whitespace-nowrap">🗑️ حذف المحفوظ</button>
+                    </div>
+                    <p id="saveStatus" class="hidden text-xs mt-2 text-center font-semibold"></p>
+                    <p class="text-[11px] text-gray-500 mt-2 text-center leading-relaxed">🔒 الحفظ اختياري، ويتم داخل متصفحك على هذا الجهاز فقط. الأداة لا تجمع أي معلومات شخصية، ولا ترسل بياناتك لأي جهة.</p>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div>
+                <div class="bg-gradient-to-b from-gray-800 to-gray-900 text-white p-5 rounded-xl shadow-md lg:sticky lg:top-6">
+                    <h2 class="text-lg font-bold border-b border-gray-700 pb-3 mb-4 text-emerald-400">ملخص</h2>
+                    <div class="space-y-2.5">
+                        <div class="flex justify-between items-center gap-2">
+                            <span class="text-gray-400 text-xs">أيام الدراسة:</span>
+                            <span id="resActualDays" class="text-base font-bold whitespace-nowrap">0 يوم</span>
+                        </div>
+                        <div class="flex justify-between items-center gap-2">
+                            <span class="text-gray-400 text-xs">حصص الجدول الحالي:</span>
+                            <span id="resCurrentClasses" class="text-base font-bold text-emerald-400 whitespace-nowrap">0</span>
+                        </div>
+                        <div id="prevResultRows" class="space-y-2.5"></div>
+                        <div id="absencesResultRow" class="hidden justify-between items-center gap-2">
+                            <span class="text-rose-300 text-xs">حصص الغياب:</span>
+                            <span id="resAbsences" class="text-base font-bold text-rose-300 whitespace-nowrap">0</span>
+                        </div>
+                        <div class="flex justify-between items-center gap-2 pt-2 border-t border-gray-700">
+                            <span class="text-gray-300 text-xs font-semibold">صافي الحصص:</span>
+                            <span id="resTotalClasses" class="text-base font-bold whitespace-nowrap">0</span>
+                        </div>
+                        <div class="pt-3 border-t border-gray-700 text-center">
+                            <span class="block text-gray-400 text-[10px] mb-1 uppercase">إجمالي المكافأة (100 ريال/حصة)</span>
+                            <div class="flex items-baseline justify-center gap-1 flex-wrap">
+                                <span id="resTotalAmount" class="text-3xl font-black text-emerald-400 break-all">0</span>
+                                <span class="text-xs text-emerald-400 font-bold">ريال</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-t border-gray-700">
+                        <h3 class="text-xs font-bold text-gray-300 mb-2 flex items-center gap-1.5">
+                            🔻 تفاصيل الخصومات
+                            <span id="deductionCountBadge" class="bg-gray-700 text-gray-300 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+                        </h3>
+                        <div id="deductionsList" class="space-y-1.5 max-h-64 overflow-y-auto custom-scroll pr-1">
+                            <p class="text-[11px] text-gray-500 italic text-center py-2">لا توجد خصومات</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="max-w-6xl mx-auto w-full mt-5 mb-2 text-center">
+        <p class="text-xs text-gray-500">تطوير فهد الخالدي ، مجمع مدارس مكة الليلي</p>
+    </footer>
+
+    <!-- Absence Modal -->
+    <div id="absenceModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-5 shadow-2xl animate-fade-in text-right modal-content">
+            <h3 class="text-base font-bold text-gray-800 mb-3">إضافة يوم غياب</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">النوع:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" data-abstype="absence" onclick="setAbsType('absence')" class="abs-type rounded-lg py-2 px-2 text-xs font-bold min-h-[52px] transition">👤 غياب<span class="block text-[10px] font-semibold opacity-75 mt-0.5">يُخصم من الحصص</span></button>
+                        <button type="button" data-abstype="course" onclick="setAbsType('course')" class="abs-type rounded-lg py-2 px-2 text-xs font-bold min-h-[52px] transition">🎓 دورة تدريبية مسائية<span class="block text-[10px] font-semibold opacity-75 mt-0.5">لا يُخصم</span></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">التاريخ:</label>
+                    <input type="date" id="absDateInput" min="2026-08-30" max="2027-06-30" oninput="updateAbsPreview()" onchange="updateAbsPreview()"
+                        class="w-full p-2.5 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                    <div id="absPreview" class="hidden mt-2 text-xs p-2.5 rounded-lg leading-relaxed"></div>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button onclick="closeAbsenceModal()" class="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-semibold min-h-[44px]">إلغاء</button>
+                <button id="absAddBtn" onclick="confirmAddAbsence()" class="flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 rounded-lg text-white font-semibold min-h-[44px] disabled:opacity-40 disabled:cursor-not-allowed">إضافة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Holidays Modal (for viewing only) -->
+    <div id="holidaysModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-5 shadow-2xl animate-fade-in text-right modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-base font-bold text-gray-800">الاطلاع على أيام الإجازات</h3>
+                <button onclick="closeHolidaysModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+            </div>
+            <div class="space-y-2 max-h-[60vh] overflow-y-auto custom-scroll pr-1" id="holidaysList"></div>
+            <p class="text-[10px] text-gray-400 mt-3 text-center">هذه القائمة للاطلاع فقط.</p>
+            <button onclick="closeHolidaysModal()" class="mt-4 w-full px-4 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700 font-semibold min-h-[44px]">إغلاق</button>
+        </div>
+    </div>
+
+    <script>
+        // تحويل "YYYY-MM-DD" إلى تاريخ بالتوقيت المحلي (يتجنب إزاحة يوم بسبب UTC)
+        function D(s) {
+            const [y, m, d] = s.split("-").map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        const holidays = [
+            { name: "إجازة اليوم الوطني السعودي", start: D("2026-09-23"), end: D("2026-09-26"), icon: "🇸🇦" },
+            { name: "العطلة المطولة", start: D("2026-10-25"), end: D("2026-10-25"), icon: "🌴" },
+            { name: "إجازة الخريف", start: D("2026-11-20"), end: D("2026-11-28"), icon: "🍂" },
+            { name: "إجازة منتصف العام", start: D("2027-01-08"), end: D("2027-01-16"), icon: "📚" },
+            { name: "إجازة يوم التأسيس", start: D("2027-02-19"), end: D("2027-02-22"), icon: "🏛️" },
+            { name: "إجازة عيد الفطر", start: D("2027-02-25"), end: D("2027-03-13"), icon: "🌙" },
+            { name: "إجازة عيد الأضحى", start: D("2027-04-30"), end: D("2027-05-22"), icon: "🕋" }
+        ];
+
+        const SA_START = D("2026-08-30");
+        const SA_END = D("2027-06-30"); // آخر يوم دوام: الأربعاء 30 يونيو
+
+        const DAY_NAMES = ["أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس"];
+        const FULL_DAY_NAMES = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        let lastDayMap = {}; // آخر حساب: لكل يوم في الفترة {type, classes, label}
+
+        function classesWord(n) { return n === 1 ? "حصة واحدة" : n === 2 ? "حصتان" : (n >= 3 && n <= 10) ? `${n} حصص` : `${n} حصة`; }
+        function esc(t) { return String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+        let state = {
+            scheduleChanged: false,
+            absences: [],
+            absenceCounter: 0,
+            prev: [],          // الجداول السابقة: {id, startWeek, endWeek, classes:[5], days:{}, refineOpen}
+            prevCounter: 0,
+            periodMode: "year" // year | since | custom
+        };
+
+        // ===== تاريخ اليوم (بتوقيت مكة) =====
+        function riyadhTodayFromDevice() {
+            try { return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh" }).format(new Date()); }
+            catch (e) { const t = new Date(); return fmtLocal(t); }
+        }
+        function fmtLocal(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+        let TODAY_STR = riyadhTodayFromDevice();
+        let todaySource = "device"; // device | api
+
+        const UNUSUAL_CLASSES = 6; // أكثر من هذا العدد في اليوم يُعدّ غير معتاد ويظهر تنبيه
+        function arDate(d, opts) {
+            try { return d.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", opts || { weekday: "long", day: "numeric", month: "long" }); }
+            catch (e) { return fmtLocal(d); }
+        }
+        function shortDM(d) { return `${d.getDate()}/${d.getMonth() + 1}`; }
+
+        // ===== الوضع الليلي =====
+        let themeOverride = null; // null = حسب إعداد الجهاز
+        const darkMQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+        function applyTheme() {
+            const dark = themeOverride !== null ? themeOverride === "dark" : !!(darkMQ && darkMQ.matches);
+            document.documentElement.classList.toggle("dark", dark);
+            const b = document.getElementById("themeBtn");
+            if (b) { b.textContent = dark ? "☀️" : "🌙"; b.title = dark ? "الوضع النهاري" : "الوضع الليلي"; }
+        }
+        function toggleTheme() {
+            themeOverride = document.documentElement.classList.contains("dark") ? "light" : "dark";
+            applyTheme();
+        }
+        if (darkMQ && darkMQ.addEventListener) darkMQ.addEventListener("change", () => { if (themeOverride === null) applyTheme(); });
+        applyTheme();
+
+        // ===== حجم الخط =====
+        const ZOOMS = [1, 1.1, 1.2, 1.32];
+        let zoomIdx = 0;
+        function changeFont(step) {
+            zoomIdx = Math.min(Math.max(zoomIdx + step, 0), ZOOMS.length - 1);
+            document.body.style.setProperty("--ui-zoom", ZOOMS[zoomIdx]);
+            document.getElementById("fontDown").disabled = zoomIdx === 0;
+            document.getElementById("fontUp").disabled = zoomIdx === ZOOMS.length - 1;
+        }
+
+        function fmt(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${dd}`;
+        }
+
+        function getHolidayInfo(d) {
+            const dow = d.getDay();
+            if (dow === 5 || dow === 6) {
+                return { name: "عطلة نهاية الأسبوع", icon: "🛑", isWeekend: true };
+            }
+            for (const h of holidays) {
+                if (d >= h.start && d <= h.end) return h;
+            }
+            return null;
+        }
+
+        function isHoliday(d) { return getHolidayInfo(d) !== null; }
+
+        function buildWeeks() {
+            const weeks = [];
+            let cur = new Date(SA_START);
+            while (cur.getDay() !== 0) cur.setDate(cur.getDate() + 1);
+            let weekNum = 1;
+            while (cur <= SA_END) {
+                const sun = new Date(cur);
+                const days = [];
+                for (let i = 0; i < 5; i++) {
+                    const d = new Date(sun); d.setDate(d.getDate() + i);
+                    if (d >= SA_START && d <= SA_END) {
+                        days.push({ date: d, str: fmt(d), active: !isHoliday(d) });
+                    }
+                }
+                if (days.length > 0) {
+                    const lastDay = days[days.length - 1].date;
+                    weeks.push({ num: weekNum, sun, thu: new Date(lastDay), days });
+                    weekNum++;
+                }
+                cur.setDate(cur.getDate() + 7);
+            }
+            return weeks;
+        }
+
+        const WEEKS = buildWeeks();
+
+        // الأسبوع الذي يقع فيه اليوم (من الأحد إلى السبت)، أو null خارج العام الدراسي
+        function todayWeek() {
+            for (const w of WEEKS) {
+                const sat = new Date(w.sun); sat.setDate(sat.getDate() + 6);
+                if (TODAY_STR >= fmt(w.sun) && TODAY_STR <= fmt(sat)) return w;
+            }
+            return null;
+        }
+
+        function weekOptions(selected) {
+            const cw = todayWeek();
+            return WEEKS.map(w => {
+                const cur = cw && cw.num === w.num;
+                return `<option value="${w.num}" ${w.num === selected ? "selected" : ""} ${cur ? 'class="cw-option"' : ""}>${cur ? "● " : ""}الأسبوع ${w.num} (${fmt(w.sun)} → ${fmt(w.thu)})${cur ? " — الأسبوع الحالي" : ""}</option>`;
+            }).join("");
+        }
+
+        function refreshWeekSelects() {
+            ["startWeek", "endWeek"].forEach(id => {
+                const el = document.getElementById(id);
+                const v = parseInt(el.value) || WEEKS[0].num;
+                el.innerHTML = weekOptions(v);
+            });
+            if (state.scheduleChanged) renderPrev();
+        }
+
+        function renderCurrentWeekBadge() {
+            const el = document.getElementById("curWeekBadge");
+            const w = todayWeek();
+            if (!w) { el.classList.add("hidden"); return; }
+            el.classList.remove("hidden");
+            el.innerHTML = `<div class="cw-badge">
+                <span class="cw-dot"></span>
+                <span class="opacity-90">الأسبوع الحالي</span>
+                <strong class="text-sm">الأسبوع ${w.num}</strong>
+                <span class="opacity-85">الأحد ${shortDM(w.sun)} – ${FULL_DAY_NAMES[w.thu.getDay()]} ${shortDM(w.thu)}</span>
+            </div>`;
+        }
+
+        // ===== العد التنازلي للإجازة القادمة =====
+        function daysWord(n) { return n === 1 ? "يوم دراسي" : n === 2 ? "يومان دراسيان" : n <= 10 ? "أيام دراسية" : "يوماً دراسياً"; }
+        function calDaysWord(n) { return n === 1 ? "يوم" : n === 2 ? "يومان" : n <= 10 ? "أيام" : "يوماً"; }
+        function activeDaysBetween(fromExcl, toExcl) {
+            let n = 0;
+            WEEKS.forEach(w => w.days.forEach(d => { if (d.active && d.str > fromExcl && d.str < toExcl) n++; }));
+            return n;
+        }
+        function firstActiveAfter(ds) {
+            for (const w of WEEKS) for (const d of w.days) if (d.active && d.str > ds) return d;
+            return null;
+        }
+        function renderCountdown() {
+            const box = document.getElementById("countdown");
+            const today = D(TODAY_STR);
+            const card = (icon, small, title, sub, num, unit) => `
+                <div class="cd-card flex items-center gap-3 rounded-2xl px-4 py-3">
+                    <div class="text-3xl leading-none shrink-0">${icon}</div>
+                    <div class="flex-1 min-w-0 text-right">
+                        <div class="text-[11px] text-emerald-100">${small}</div>
+                        <div class="font-bold text-sm sm:text-base leading-snug">${title}</div>
+                        ${sub ? `<div class="text-[11px] text-emerald-100 mt-0.5">${sub}</div>` : ""}
+                    </div>
+                    ${num !== null ? `<div class="cd-num rounded-xl px-3 py-1.5 text-center shadow shrink-0 min-w-[64px]">
+                        <div class="text-2xl font-black leading-none">${num}</div>
+                        <div class="text-[10px] font-bold mt-1 whitespace-nowrap">${unit}</div>
+                    </div>` : ""}
+                </div>`;
+            let html = "";
+            if (TODAY_STR < fmt(SA_START)) {
+                const n = Math.round((SA_START - today) / 86400000);
+                html = card("🏫", "استعد", "بداية العام الدراسي", arDate(SA_START), n, calDaysWord(n));
+            } else if (TODAY_STR > fmt(SA_END)) {
+                html = card("☀️", "إجازة سعيدة", "انتهى العام الدراسي 1448هـ", "", null, "");
+            } else {
+                const cur = holidays.find(h => today >= h.start && today <= h.end);
+                if (cur) {
+                    const back = firstActiveAfter(fmt(cur.end));
+                    const n = back ? Math.round((back.date - today) / 86400000) : null;
+                    html = card(cur.icon, "أنت الآن في", cur.name, back ? `العودة للدراسة: ${arDate(back.date)}` : "", n, n !== null ? `${calDaysWord(n)} على العودة` : "");
+                } else {
+                    const endYear = new Date(SA_END); endYear.setDate(endYear.getDate() + 1);
+                    const next = holidays.filter(h => h.start > today).sort((a, b) => a.start - b.start)[0]
+                        || { name: "إجازة نهاية العام", start: endYear, icon: "☀️" };
+                    const n = activeDaysBetween(TODAY_STR, fmt(next.start));
+                    const todayActive = WEEKS.some(w => w.days.some(d => d.active && d.str === TODAY_STR));
+                    if (n === 0) {
+                        html = card(next.icon, todayActive ? "اليوم آخر يوم دراسي قبل" : "تبدأ قريباً", next.name, `تبدأ ${arDate(next.start)}`, null, "");
+                    } else {
+                        html = card(next.icon, "باقي على الإجازة القادمة", next.name, `تبدأ ${arDate(next.start)}`, n, daysWord(n));
+                    }
+                }
+            }
+            box.innerHTML = html;
+            box.classList.toggle("hidden", !html);
+        }
+
+        function onTodayChanged() {
+            renderTodayInfo();
+            renderCountdown();
+            renderCurrentWeekBadge();
+            refreshWeekSelects();
+        }
+
+        function fillWeekSelects() {
+            document.getElementById("startWeek").innerHTML = weekOptions(WEEKS[0].num);
+            document.getElementById("endWeek").innerHTML = weekOptions(WEEKS[Math.min(3, WEEKS.length - 1)].num);
+        }
+
+        // آخر يوم يُحتسب: اليوم (في وضعي "حتى اليوم")، أو null في الفترة المحددة
+        function cutoffStr() {
+            if (state.periodMode === "custom") return null;
+            const end = fmt(SA_END);
+            return TODAY_STR > end ? end : TODAY_STR;
+        }
+        function inCut(d) { const c = cutoffStr(); return !c || d.str <= c; }
+
+        function currentWeekNum() {
+            const c = cutoffStr() || TODAY_STR;
+            let n = WEEKS[0].num;
+            WEEKS.forEach(w => { if (fmt(w.sun) <= c) n = w.num; });
+            return n;
+        }
+
+        function setMode(mode) {
+            state.periodMode = mode;
+            document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+            const startSel = document.getElementById("startWeek"), endSel = document.getElementById("endWeek");
+            document.getElementById("weekSelects").classList.toggle("hidden", mode === "year");
+            document.getElementById("endWrap").classList.toggle("hidden", mode !== "custom");
+            document.getElementById("weekSelects").classList.toggle("grid-cols-2", mode === "custom");
+            if (mode === "year") startSel.value = WEEKS[0].num;
+            if (mode !== "custom") endSel.value = currentWeekNum();
+            handleRangeChange();
+        }
+
+        function mainRange() {
+            return { s: parseInt(document.getElementById("startWeek").value), e: parseInt(document.getElementById("endWeek").value) };
+        }
+
+        function getSelectedWeeksList() {
+            const { s, e } = mainRange();
+            return WEEKS.filter(w => w.num >= s && w.num <= e);
+        }
+
+        function handleRangeChange() {
+            const startSel = document.getElementById("startWeek"), endSel = document.getElementById("endWeek");
+            if (state.periodMode !== "custom") {
+                endSel.value = currentWeekNum();
+                if (parseInt(startSel.value) > parseInt(endSel.value)) startSel.value = endSel.value;
+            }
+            const { s, e } = mainRange();
+            if (s > e) endSel.value = s;
+            // إبقاء الجداول السابقة داخل الفترة
+            const r = mainRange();
+            state.prev.forEach(p => {
+                p.startWeek = Math.min(Math.max(p.startWeek, r.s), r.e);
+                p.endWeek = Math.min(Math.max(p.endWeek, p.startWeek), r.e);
+            });
+            updateRangeInfo();
+            if (state.scheduleChanged) renderPrev();
+            calculateTotal();
+        }
+
+        function updateRangeInfo() {
+            const el = document.getElementById("rangeInfo");
+            const list = getSelectedWeeksList();
+            if (list.length === 0) { el.textContent = ""; return; }
+            const first = list[0], last = list[list.length - 1];
+            const c = cutoffStr();
+            if (c && c < fmt(SA_START)) { el.textContent = "لم يبدأ العام الدراسي بعد."; return; }
+            const endTxt = c ? `اليوم ${c}` : fmt(last.thu);
+            const n = list.length;
+            el.textContent = `من ${fmt(first.sun)} إلى ${endTxt} — ${n === 1 ? "أسبوع واحد" : n === 2 ? "أسبوعان" : n <= 10 ? n + " أسابيع" : n + " أسبوعاً"}`;
+        }
+
+        function renderTodayInfo() {
+            const d = D(TODAY_STR);
+            let g = TODAY_STR, h = "";
+            try {
+                g = d.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + "م";
+                h = " — " + d.toLocaleDateString("ar-SA-u-ca-islamic-umalqura-nu-latn", { day: "numeric", month: "long", year: "numeric" });
+            } catch (e) { }
+            const src = todaySource === "api" ? "✓ تاريخ موثّق من خادم الوقت" : "حسب ساعة جهازك";
+            document.getElementById("todayInfo").textContent = `📅 اليوم: ${g}${h} (${src})`;
+        }
+
+        // جلب التاريخ الدقيق بتوقيت الرياض من خادم وقت خارجي، مع بديل عند الفشل
+        async function fetchJSON(url, ms) {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), ms);
+            try {
+                const r = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+                if (!r.ok) throw new Error(r.status);
+                return await r.json();
+            } finally { clearTimeout(t); }
+        }
+        async function syncTodayFromApi() {
+            const sources = [
+                ["https://timeapi.io/api/time/current/zone?timeZone=Asia%2FRiyadh", j => j.dateTime],
+                ["https://worldtimeapi.org/api/timezone/Asia/Riyadh", j => j.datetime]
+            ];
+            for (const [url, pick] of sources) {
+                try {
+                    const v = String(pick(await fetchJSON(url, 5000)) || "").slice(0, 10);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                        const changed = v !== TODAY_STR;
+                        TODAY_STR = v; todaySource = "api";
+                        onTodayChanged();
+                        if (changed) setMode(state.periodMode);
+                        return;
+                    }
+                } catch (e) { /* جرّب المصدر التالي */ }
+            }
+        }
+
+        function setScheduleChanged(changed) {
+            state.scheduleChanged = changed;
+            const btnNo = document.getElementById("btnNoChange");
+            const btnYes = document.getElementById("btnYesChange");
+            const oldSection = document.getElementById("oldScheduleSection");
+            if (changed) {
+                btnYes.className = "flex-1 py-2.5 px-3 rounded-lg font-semibold transition border-2 min-h-[44px] bg-amber-600 text-white border-amber-600 text-sm";
+                btnNo.className = "flex-1 py-2.5 px-3 rounded-lg font-semibold transition border-2 min-h-[44px] bg-white text-gray-700 border-gray-300 hover:border-emerald-500 text-sm";
+                oldSection.classList.remove("hidden");
+                if (state.prev.length === 0) addPrev(true);
+                renderPrev();
+            } else {
+                btnNo.className = "flex-1 py-2.5 px-3 rounded-lg font-semibold transition border-2 min-h-[44px] bg-emerald-600 text-white border-emerald-600 text-sm";
+                btnYes.className = "flex-1 py-2.5 px-3 rounded-lg font-semibold transition border-2 min-h-[44px] bg-white text-gray-700 border-gray-300 hover:border-amber-500 text-sm";
+                oldSection.classList.add("hidden");
+            }
+            document.getElementById("currentStepNum").textContent = changed ? "4" : "3";
+            document.getElementById("absenceStepNum").textContent = changed ? "5" : "4";
+            calculateTotal();
+        }
+
+        // ==========================================
+        // الجداول السابقة (متعددة)
+        // ==========================================
+        function getPrev(id) { return state.prev.find(p => p.id === id); }
+
+        function addPrev(silent) {
+            const r = mainRange();
+            const last = state.prev[state.prev.length - 1];
+            const start = last ? Math.min(last.endWeek + 1, r.e) : r.s;
+            state.prev.push({ id: ++state.prevCounter, startWeek: start, endWeek: start, classes: [0, 0, 0, 0, 0], days: {}, refineOpen: false });
+            if (!silent) { renderPrev(); calculateTotal(); }
+        }
+
+        function removePrev(id) {
+            state.prev = state.prev.filter(p => p.id !== id);
+            if (state.prev.length === 0) { setScheduleChanged(false); return; }
+            renderPrev(); calculateTotal();
+        }
+
+        function setPrevWeek(id, which, val) {
+            const p = getPrev(id), r = mainRange();
+            let v = Math.min(Math.max(parseInt(val), r.s), r.e);
+            if (which === "start") { p.startWeek = v; if (p.endWeek < v) p.endWeek = v; }
+            else { p.endWeek = v; if (p.startWeek > v) p.startWeek = v; }
+            // إزالة الأيام المحددة خارج النطاق الجديد
+            Object.keys(p.days).forEach(ds => {
+                const inRange = WEEKS.some(w => w.num >= p.startWeek && w.num <= p.endWeek && w.days.some(d => d.str === ds));
+                if (!inRange) delete p.days[ds];
+            });
+            renderPrev(); calculateTotal();
+        }
+
+        function setPrevClass(id, dow, val) { getPrev(id).classes[dow] = clamp(val); calculateTotal(); }
+
+        function togglePrevRefine(id) { const p = getPrev(id); p.refineOpen = !p.refineOpen; renderPrev(); }
+
+        function togglePrevDay(id, ds, checked) {
+            const p = getPrev(id);
+            if (checked) p.days[ds] = true; else delete p.days[ds];
+            calculateTotal();
+        }
+
+        function renderPrev() {
+            const list = document.getElementById("prevList");
+            const multi = state.prev.length > 1;
+            list.innerHTML = state.prev.map((p, i) => {
+                const title = multi ? `📅 الجدول السابق ${i + 1}` : "📅 الجدول السابق";
+                let chips = "";
+                if (p.refineOpen) {
+                    WEEKS.filter(w => w.num >= p.startWeek && w.num <= p.endWeek).forEach(w => {
+                        w.days.forEach(d => {
+                            if (!d.active) return;
+                            chips += `<label class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded text-[11px] cursor-pointer border border-amber-300">
+                                <input type="checkbox" ${p.days[d.str] ? "checked" : ""} onchange="togglePrevDay(${p.id}, '${d.str}', this.checked)" class="accent-amber-600 w-3.5 h-3.5">
+                                <span>${d.str}</span></label>`;
+                        });
+                    });
+                }
+                return `<div class="bg-amber-50 p-4 sm:p-5 rounded-xl border-2 border-amber-300 space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <h2 class="text-base font-bold text-amber-800">${title}</h2>
+                        <button type="button" onclick="removePrev(${p.id})" class="text-rose-600 hover:bg-rose-100 p-1.5 rounded text-sm" aria-label="حذف">🗑️</button>
+                    </div>
+                    <p class="text-xs text-amber-700">اختر الأسابيع التي كان فيها هذا الجدول سارياً:</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-800 mb-1">من الأسبوع:</label>
+                            <select onchange="setPrevWeek(${p.id}, 'start', this.value)" class="w-full p-2.5 text-base border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white">${weekOptions(p.startWeek)}</select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-800 mb-1">إلى الأسبوع:</label>
+                            <select onchange="setPrevWeek(${p.id}, 'end', this.value)" class="w-full p-2.5 text-base border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white">${weekOptions(p.endWeek)}</select>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="button" onclick="togglePrevRefine(${p.id})" class="text-xs text-amber-700 underline hover:text-amber-900">${p.refineOpen ? "✖ إغلاق تحديد الأيام" : "✏️ تحديد أيام بعينها (اختياري)"}</button>
+                        ${p.refineOpen ? `<div class="mt-2 bg-white p-3 rounded-lg border border-amber-200 space-y-2">
+                            <p class="text-xs text-amber-800 font-semibold">اختر الأيام التي كان فيها هذا الجدول فقط:</p>
+                            <div class="flex flex-wrap gap-1.5">${chips || '<span class="text-[11px] text-gray-400">لا توجد أيام دراسة في هذه الأسابيع</span>'}</div>
+                        </div>` : ""}
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-amber-200">
+                        <p class="text-xs font-semibold text-amber-800 mb-2">حصص هذا الجدول (لكل يوم من الأسبوع):</p>
+                        <div class="grid grid-cols-5 gap-1.5 text-center">
+                            ${[0, 1, 2, 3, 4].map(dw => `<div><label class="text-[10px] text-gray-600 block">${DAY_NAMES[dw]}</label><input type="text" maxlength="2" autocomplete="off" data-num data-prev="${p.id}" data-dow="${dw}" placeholder="0" inputmode="numeric" value="${p.classes[dw] || ""}" class="w-full p-1.5 text-sm border border-amber-300 rounded text-center focus:ring-2 focus:ring-amber-500 focus:outline-none" oninput="setPrevClass(${p.id}, ${dw}, this.value)" onfocus="this.select()"></div>`).join("")}
+                        </div>
+                    </div>
+                    <div id="prevWarn-${p.id}" class="hidden warn-box text-xs p-2.5 rounded-lg font-semibold"></div>
+                    <div id="prevSummary-${p.id}" class="text-xs text-amber-800 bg-amber-100 p-2 rounded"></div>
+                </div>`;
+            }).join("");
+        }
+
+        // يحدد الجدول السابق الذي يغطي اليوم (الأحدث إضافةً عند التداخل)، أو null للجدول الحالي
+        function prevFor(weekNum, ds) {
+            for (let i = state.prev.length - 1; i >= 0; i--) {
+                const p = state.prev[i];
+                if (Object.keys(p.days).length > 0) { if (p.days[ds]) return p; }
+                else if (weekNum >= p.startWeek && weekNum <= p.endWeek) return p;
+            }
+            return null;
+        }
+
+        // تحويل الأرقام العربية (٠١٢...) والفارسية (۰۱۲...) إلى إنجليزية
+        function toLatinDigits(v) {
+            return String(v).replace(/[\u0660-\u0669]/g, c => c.charCodeAt(0) - 0x0660)
+                            .replace(/[\u06F0-\u06F9]/g, c => c.charCodeAt(0) - 0x06F0);
+        }
+
+        function clamp(v) {
+            if (v === "" || v === null || v === undefined) return 0;
+            let n = parseInt(toLatinDigits(v));
+            if (isNaN(n)) n = 0;
+            if (n < 0) n = 0;
+            if (n > 20) n = 20;
+            return n;
+        }
+
+        // ==========================================
+        // 1. دالة الحساب الرئيسية
+        // ==========================================
+        function calculateTotal() {
+            const curWeekly = {
+                0: clamp(document.getElementById("curSun").value),
+                1: clamp(document.getElementById("curMon").value),
+                2: clamp(document.getElementById("curTue").value),
+                3: clamp(document.getElementById("curWed").value),
+                4: clamp(document.getElementById("curThu").value)
+            };
+
+            // تنبيه الأرقام غير المعتادة
+            const warnText = list => `⚠️ رقم غير معتاد: ${list.join("، ")}. تأكد من العدد قبل الاعتماد على النتيجة.`;
+            const curUnusual = [];
+            ["curSun", "curMon", "curTue", "curWed", "curThu"].forEach((id, i) => {
+                const bad = curWeekly[i] > UNUSUAL_CLASSES;
+                document.getElementById(id).classList.toggle("warn-input", bad);
+                if (bad) curUnusual.push(`${DAY_NAMES[i]} (${classesWord(curWeekly[i])})`);
+            });
+            const cw = document.getElementById("curWarn");
+            cw.classList.toggle("hidden", curUnusual.length === 0);
+            cw.textContent = curUnusual.length ? warnText(curUnusual) : "";
+            state.prev.forEach(p => {
+                const bad = [];
+                document.querySelectorAll(`input[data-prev="${p.id}"]`).forEach(inp => {
+                    const dw = parseInt(inp.dataset.dow), v = p.classes[dw] || 0;
+                    inp.classList.toggle("warn-input", v > UNUSUAL_CLASSES);
+                    if (v > UNUSUAL_CLASSES) bad.push(`${DAY_NAMES[dw]} (${classesWord(v)})`);
+                });
+                const el = document.getElementById(`prevWarn-${p.id}`);
+                if (el) { el.classList.toggle("hidden", bad.length === 0); el.textContent = bad.length ? warnText(bad) : ""; }
+            });
+
+            const selectedWeeks = getSelectedWeeksList();
+            const usePrev = state.scheduleChanged && state.prev.length > 0;
+
+            let currentDays = 0, currentClasses = 0;
+            const prevStats = {}; state.prev.forEach(p => prevStats[p.id] = { days: 0, classes: 0 });
+            let coveredCount = 0;
+            const dayTypeMap = {};
+            let lastActive; // undefined = لم يمر يوم دراسة بعد، null = الجدول الحالي
+
+            selectedWeeks.forEach(w => {
+                w.days.forEach(d => {
+                    if (!inCut(d)) return; // أيام بعد اليوم لا تُحتسب
+                    const dow = d.date.getDay();
+                    let p = null;
+                    if (usePrev) {
+                        if (!d.active && lastActive !== undefined) p = lastActive; // الإجازة تتبع آخر يوم دراسة قبلها
+                        else p = prevFor(w.num, d.str);
+                    }
+                    if (d.active) lastActive = p;
+
+                    const classes = p ? (p.classes[dow] || 0) : (curWeekly[dow] || 0);
+                    const pIdx = p ? state.prev.indexOf(p) : -1;
+                    const label = p ? (state.prev.length > 1 ? `الجدول السابق ${pIdx + 1}` : "الجدول السابق") : "الجدول الحالي";
+                    dayTypeMap[d.str] = { type: p ? "old" : "current", classes, label };
+
+                    if (!d.active) return;
+                    if (p) { coveredCount++; prevStats[p.id].days++; prevStats[p.id].classes += classes; }
+                    else { currentDays++; currentClasses += classes; }
+                });
+            });
+
+            lastDayMap = dayTypeMap;
+            let absenceClasses = 0;
+            state.absences.forEach(a => {
+                const info = dayTypeMap[a.date];
+                const isCourse = a.type === "course";
+                a.classesDeducted = info && !isCourse ? info.classes : 0; // يُستنتج من التاريخ والجدول الساري فقط
+                absenceClasses += a.classesDeducted;
+                const el = document.getElementById(`absCls-${a.id}`);
+                if (el) el.innerHTML = !info
+                    ? `<span class="text-amber-700">خارج فترة الاحتساب</span>`
+                    : isCourse
+                        ? `<span class="font-bold text-sky-700">لا يُخصم</span> <span class="text-gray-500">· تُحتسب ${classesWord(info.classes)} كاملة</span>`
+                        : `<span class="font-bold text-rose-700">يُخصم ${classesWord(info.classes)}</span> <span class="text-gray-500">· ${info.label}</span>`;
+            });
+
+            const prevTotal = Object.values(prevStats).reduce((s, x) => s + x.classes, 0);
+            const prevDays = Object.values(prevStats).reduce((s, x) => s + x.days, 0);
+            const totalClasses = Math.max(0, currentClasses + prevTotal - absenceClasses);
+            const totalAmount = totalClasses * 100;
+
+            document.getElementById("resActualDays").textContent = `${currentDays + prevDays} يوم`;
+            document.getElementById("resCurrentClasses").textContent = `${currentClasses}`;
+
+            // صفوف الجداول السابقة في الملخص
+            const multi = state.prev.length > 1;
+            document.getElementById("prevResultRows").innerHTML = usePrev ? state.prev.map((p, i) =>
+                `<div class="flex justify-between items-center gap-2">
+                    <span class="text-amber-300 text-xs">حصص الجدول السابق${multi ? " " + (i + 1) : ""}:</span>
+                    <span class="text-base font-bold text-amber-300 whitespace-nowrap">${prevStats[p.id].classes}</span>
+                </div>`).join("") : "";
+
+            // ملخص داخل كل بطاقة جدول سابق
+            state.prev.forEach(p => {
+                const el = document.getElementById(`prevSummary-${p.id}`);
+                if (!el) return;
+                const st = prevStats[p.id];
+                const n = Object.keys(p.days).length;
+                const scope = n > 0 ? `${n} يوم محدد` : `الأسابيع ${p.startWeek} → ${p.endWeek}`;
+                el.textContent = `${scope}: ${st.days} يوم دراسي، ${st.classes} حصة.`;
+            });
+
+            const absRow = document.getElementById("absencesResultRow");
+            if (absenceClasses > 0) {
+                absRow.classList.remove("hidden"); absRow.classList.add("flex");
+                document.getElementById("resAbsences").textContent = `${absenceClasses}`;
+            } else {
+                absRow.classList.add("hidden"); absRow.classList.remove("flex");
+            }
+            document.getElementById("resTotalClasses").textContent = `${totalClasses}`;
+            document.getElementById("resTotalAmount").textContent = totalAmount.toLocaleString("ar-SA");
+
+            const cov = document.getElementById("coveredInfo");
+            if (usePrev && coveredCount > 0) {
+                cov.classList.remove("hidden");
+                cov.innerHTML = `⚠️ ${coveredCount} يوم دراسي محسوب ضمن <strong>الجداول السابقة</strong>، والباقي على هذا الجدول.`;
+            } else {
+                cov.classList.add("hidden");
+            }
+
+            renderDeductions(selectedWeeks, dayTypeMap);
+            if (document.getElementById("saveBtn")) updateSaveStatus();
+        }
+
+        // ==========================================
+        // 2. دالة عرض الخصومات
+        // ==========================================
+        function renderDeductions(selectedWeeks, dayTypeMap) {
+            const list = document.getElementById("deductionsList");
+            const badge = document.getElementById("deductionCountBadge");
+            list.innerHTML = "";
+
+            const holidayMap = {};
+            const absenceItems = [];
+            let totalDeductionDays = 0;
+
+            selectedWeeks.forEach(w => {
+                w.days.forEach(d => {
+                    if (!inCut(d)) return;
+                    const hInfo = getHolidayInfo(d.date);
+                    if (hInfo && !hInfo.isWeekend) {
+                        if (!holidayMap[hInfo.name]) {
+                            holidayMap[hInfo.name] = { icon: hInfo.icon, days: [], classes: 0 };
+                        }
+                        holidayMap[hInfo.name].days.push(d.str);
+                        const dayInfo = dayTypeMap[d.str];
+                        if (dayInfo) holidayMap[hInfo.name].classes += dayInfo.classes;
+                        totalDeductionDays++;
+                    }
+                });
+            });
+
+            state.absences.forEach(a => {
+                if (!dayTypeMap[a.date] || a.type === "course") return;
+                absenceItems.push(a);
+                totalDeductionDays++;
+            });
+
+            absenceItems.sort((a, b) => a.date.localeCompare(b.date));
+
+            if (totalDeductionDays === 0) {
+                list.innerHTML = `<p class="text-[11px] text-gray-500 italic text-center py-2">لا توجد خصومات</p>`;
+                badge.textContent = "0";
+                return;
+            }
+
+            badge.textContent = totalDeductionDays.toString();
+
+            absenceItems.forEach(a => {
+                const item = document.createElement("div");
+                item.className = "deduction-item chip-absence p-2 rounded text-[11px] leading-relaxed";
+                const reason = "";
+                item.innerHTML = `
+                    <div class="flex justify-between items-start gap-1.5">
+                        <div class="flex-1">
+                            <div class="font-bold flex items-center gap-1">👤 غياب ${reason}</div>
+                            <div class="font-mono opacity-80 mt-0.5">${a.date}</div>
+                        </div>
+                        <div class="text-left whitespace-nowrap">
+                            <div class="font-bold">-${a.classesDeducted}</div>
+                            <div class="opacity-70 text-[9px]">حصة</div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            Object.keys(holidayMap).forEach(name => {
+                const h = holidayMap[name];
+                const item = document.createElement("div");
+                item.className = "deduction-item chip-holiday p-2 rounded text-[11px] leading-relaxed";
+                const daysStr = h.days.length <= 3 ? h.days.join(" • ") : `${h.days[0]} … ${h.days[h.days.length-1]}`;
+
+                const classesDisplay = h.classes > 0
+                    ? `<div class="font-bold">-${h.classes}</div><div class="opacity-70 text-[9px]">حصة</div>`
+                    : `<div class="opacity-60 text-[10px] italic">لا حصص</div>`;
+
+                item.innerHTML = `
+                    <div class="flex justify-between items-start gap-1.5">
+                        <div class="flex-1">
+                            <div class="font-bold flex items-center gap-1">${h.icon} ${name}</div>
+                            <div class="opacity-80 mt-0.5 text-[10px]">${daysStr}</div>
+                            <div class="opacity-70 mt-0.5 text-[10px]">${h.days.length} يوم</div>
+                        </div>
+                        <div class="text-left whitespace-nowrap">
+                            ${classesDisplay}
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // ==========================================
+        // 3. دوال الغياب
+        // ==========================================
+        function openAbsenceModal() {
+            const s = getSelectedWeeksList();
+            if (s.length === 0) { alert("اختر فترة أولاً."); return; }
+            const inp = document.getElementById("absDateInput");
+            const c = cutoffStr();
+            const maxD = fmt(s[s.length - 1].thu);
+            inp.min = fmt(s[0].sun); inp.max = c && c < maxD ? c : maxD;
+            // أول يوم دراسة فعلي في الفترة
+            let first = null;
+            s.some(w => w.days.some(d => { if (d.active) { first = d.str; return true; } return false; }));
+            inp.value = first || fmt(s[0].sun);
+            setAbsType("absence");
+            document.getElementById("absenceModal").classList.remove("hidden");
+            document.getElementById("absenceModal").classList.add("flex");
+        }
+
+        let absType = "absence";
+        function setAbsType(t) {
+            absType = t;
+            document.querySelectorAll(".abs-type").forEach(b => b.classList.toggle("active", b.dataset.abstype === t));
+            const btn = document.getElementById("absAddBtn");
+            btn.classList.toggle("bg-rose-600", t === "absence"); btn.classList.toggle("hover:bg-rose-700", t === "absence");
+            btn.classList.toggle("bg-sky-600", t === "course"); btn.classList.toggle("hover:bg-sky-700", t === "course");
+            updateAbsPreview();
+        }
+
+        function closeAbsenceModal() {
+            document.getElementById("absenceModal").classList.add("hidden");
+            document.getElementById("absenceModal").classList.remove("flex");
+        }
+
+        // فحص تاريخ الغياب ومعرفة عدد حصصه من الجدول الساري
+        function absDateStatus(ds) {
+            if (!ds) return { ok: false, msg: "اختر تاريخ الغياب." };
+            const d = D(ds);
+            if (d < SA_START || d > SA_END) return { ok: false, msg: "⚠️ هذا التاريخ لا يقع ضمن أيام الدراسة الفعلية (خارج العام الدراسي)." };
+            const h = getHolidayInfo(d);
+            if (h) return { ok: false, msg: `⚠️ هذا التاريخ لا يقع ضمن أيام الدراسة الفعلية (${h.icon} ${h.name}).` };
+            const info = lastDayMap[ds];
+            const c = cutoffStr();
+            if (!info && c && ds > c) return { ok: false, msg: "⚠️ هذا التاريخ لم يأتِ بعد، والاحتساب حتى اليوم فقط." };
+            if (!info) return { ok: false, msg: "⚠️ هذا التاريخ خارج فترة الاحتساب المختارة. غيّر الفترة أولاً." };
+            if (state.absences.some(a => a.date === ds)) return { ok: false, msg: "⚠️ هذا اليوم مضاف مسبقاً." };
+            return { ok: true, info, day: FULL_DAY_NAMES[d.getDay()] };
+        }
+
+        function updateAbsPreview() {
+            const st = absDateStatus(document.getElementById("absDateInput").value);
+            const box = document.getElementById("absPreview");
+            box.classList.remove("hidden");
+            if (!st.ok) {
+                box.className = "mt-2 text-xs p-2.5 rounded-lg leading-relaxed bg-amber-50 text-amber-800 border border-amber-300 font-semibold";
+                box.textContent = st.msg;
+            } else if (absType === "course") {
+                box.className = "mt-2 text-xs p-2.5 rounded-lg leading-relaxed bg-sky-50 text-sky-800 border border-sky-200";
+                box.innerHTML = `🎓 ${st.day}: حضور دورة تدريبية مسائية — <strong>لا يُخصم شيء</strong>${st.info.classes ? `، وتُحتسب ${classesWord(st.info.classes)} كاملة` : ""}.`;
+            } else if (st.info.classes === 0) {
+                box.className = "mt-2 text-xs p-2.5 rounded-lg leading-relaxed bg-gray-50 text-gray-700 border border-gray-200";
+                box.textContent = `📅 ${st.day}: لا توجد لديك حصص في هذا اليوم حسب ${st.info.label}، فلن يُخصم شيء.`;
+            } else {
+                box.className = "mt-2 text-xs p-2.5 rounded-lg leading-relaxed bg-rose-50 text-rose-800 border border-rose-200";
+                box.innerHTML = `📅 ${st.day}: سيُخصم <strong>${classesWord(st.info.classes)}</strong> (${st.info.label}).`;
+            }
+            document.getElementById("absAddBtn").disabled = !st.ok;
+        }
+
+        function confirmAddAbsence() {
+            const dateStr = document.getElementById("absDateInput").value;
+            const st = absDateStatus(dateStr);
+            if (!st.ok) { updateAbsPreview(); return; }
+            state.absenceCounter++;
+            state.absences.push({
+                id: state.absenceCounter,
+                date: dateStr,
+                type: absType,
+                classesDeducted: absType === "course" ? 0 : st.info.classes
+            });
+            state.absences.sort((x, y) => x.date.localeCompare(y.date));
+            closeAbsenceModal();
+            renderAbsences();
+            calculateTotal();
+        }
+
+        function removeAbsence(id) {
+            state.absences = state.absences.filter(a => a.id !== id);
+            renderAbsences();
+            calculateTotal();
+        }
+
+        function renderAbsences() {
+            const container = document.getElementById("absencesContainer");
+            const noMsg = document.getElementById("noAbsencesMsg");
+            container.querySelectorAll(".absence-item").forEach(el => el.remove());
+            if (state.absences.length === 0) {
+                noMsg.classList.remove("hidden");
+                return;
+            }
+            noMsg.classList.add("hidden");
+            state.absences.forEach(a => {
+                const item = document.createElement("div");
+                const isCourse = a.type === "course";
+                item.className = "absence-item bg-white rounded-lg border border-rose-200 p-2.5 flex items-center justify-between gap-2" + (isCourse ? " course-item" : "");
+                item.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-xs font-bold ${isCourse ? "text-sky-700" : "text-rose-700"}">${isCourse ? "🎓 دورة تدريبية" : "👤 غياب"}</span>
+                            <span class="text-xs font-semibold text-gray-700">${FULL_DAY_NAMES[D(a.date).getDay()]}</span>
+                            <span class="font-mono text-xs font-semibold text-rose-700">${a.date}</span>
+                        </div>
+                        <div id="absCls-${a.id}" class="text-[11px] mt-0.5"></div>
+                    </div>
+                    <button onclick="removeAbsence(${a.id})" class="text-rose-600 hover:bg-rose-100 p-1.5 rounded shrink-0" aria-label="حذف">🗑️</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // ==========================================
+        // 4. نافذة الإجازات (للاطلاع فقط)
+        // ==========================================
+        function openHolidaysModal() {
+            const list = document.getElementById("holidaysList");
+            list.innerHTML = holidays.map(h => `
+                <div class="holiday-badge rounded-lg p-3 flex items-center gap-3">
+                    <span class="text-lg">${h.icon}</span>
+                    <div class="flex-1">
+                        <div class="font-bold text-sm text-amber-900">${h.name}</div>
+                        <div class="text-xs text-amber-700 font-mono">${fmt(h.start)} → ${fmt(h.end)}</div>
+                    </div>
+                </div>
+            `).join("");
+            document.getElementById("holidaysModal").classList.remove("hidden");
+            document.getElementById("holidaysModal").classList.add("flex");
+        }
+
+        function closeHolidaysModal() {
+            document.getElementById("holidaysModal").classList.add("hidden");
+            document.getElementById("holidaysModal").classList.remove("flex");
+        }
+
+        // ==========================================
+        // 5. الحفظ الاختياري على الجهاز
+        // ==========================================
+        const STORE_KEY = "ce-calc-saved-v1";
+        const CUR_IDS = ["curSun", "curMon", "curTue", "curWed", "curThu"];
+
+        function snapshot() {
+            const r = mainRange();
+            return {
+                periodMode: state.periodMode, startWeek: r.s, endWeek: r.e,
+                cur: CUR_IDS.map(id => clamp(document.getElementById(id).value)),
+                scheduleChanged: state.scheduleChanged,
+                prev: state.prev.map(p => ({ startWeek: p.startWeek, endWeek: p.endWeek, classes: p.classes.slice(), days: Object.keys(p.days).sort() })),
+                absences: state.absences.map(a => ({ date: a.date, type: a.type === "course" ? "course" : "absence" })).sort((x, y) => x.date.localeCompare(y.date))
+            };
+        }
+        function readSaved() {
+            try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; }
+            catch (e) { return null; }
+        }
+        function saveData() {
+            const data = snapshot();
+            data.savedAt = new Date().toISOString();
+            try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+            catch (e) { showSaveStatus("⚠️ متصفحك لا يسمح بالحفظ (ربما في وضع التصفح الخفي).", "warn"); return; }
+            updateSaveStatus(true);
+        }
+        function clearSaved() {
+            if (!confirm("حذف البيانات المحفوظة من هذا الجهاز؟")) return;
+            try { localStorage.removeItem(STORE_KEY); } catch (e) { }
+            updateSaveStatus();
+        }
+        function showSaveStatus(msg, kind) {
+            const el = document.getElementById("saveStatus");
+            el.classList.remove("hidden");
+            el.className = "text-xs mt-2 text-center font-semibold " + (kind === "ok" ? "text-emerald-700" : kind === "warn" ? "text-amber-700" : "text-gray-600");
+            el.textContent = msg;
+        }
+        function updateSaveStatus(justSaved) {
+            const saved = readSaved();
+            const btn = document.getElementById("saveBtn");
+            document.getElementById("clearSavedBtn").classList.toggle("hidden", !saved);
+            if (!saved) { document.getElementById("saveStatus").classList.add("hidden"); btn.textContent = "💾 حفظ جدولي على هذا الجهاز"; return; }
+            btn.textContent = "💾 تحديث الحفظ";
+            const { savedAt, ...rest } = saved;
+            let when = "";
+            try { when = new Date(savedAt).toLocaleString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }); } catch (e) { }
+            if (JSON.stringify(rest) === JSON.stringify(snapshot())) showSaveStatus(justSaved ? `✓ تم الحفظ (${when})` : `✓ بياناتك محفوظة (${when})`, "ok");
+            else showSaveStatus("⚠️ لديك تعديلات لم تُحفظ بعد.", "warn");
+        }
+        function restoreSaved() {
+            const sv = readSaved();
+            if (!sv) return false;
+            try {
+                CUR_IDS.forEach((id, i) => { const v = (sv.cur || [])[i]; document.getElementById(id).value = v ? v : ""; });
+                const max = WEEKS.length, cl = n => Math.min(Math.max(1, parseInt(n) || 1), max);
+                document.getElementById("startWeek").value = cl(sv.startWeek);
+                document.getElementById("endWeek").value = cl(sv.endWeek);
+                state.prev = (sv.prev || []).map(p => {
+                    const days = {}; (p.days || []).forEach(ds => days[ds] = true);
+                    return { id: ++state.prevCounter, startWeek: cl(p.startWeek), endWeek: cl(p.endWeek), classes: (p.classes || [0, 0, 0, 0, 0]).map(clamp), days, refineOpen: false };
+                });
+                state.absences = (sv.absences || [])
+                    .map(x => typeof x === "string" ? { date: x, type: "absence" } : x)
+                    .filter(x => x && /^\d{4}-\d{2}-\d{2}$/.test(x.date))
+                    .map(x => ({ id: ++state.absenceCounter, date: x.date, type: x.type === "course" ? "course" : "absence", classesDeducted: 0 }));
+                setMode(["year", "since", "custom"].includes(sv.periodMode) ? sv.periodMode : "year");
+                setScheduleChanged(!!sv.scheduleChanged && state.prev.length > 0);
+                renderAbsences();
+                calculateTotal();
+                return true;
+            } catch (e) { return false; }
+        }
+
+        document.addEventListener("input", function(e) {
+            const el = e.target;
+            if (!el.matches || !el.matches("input[data-num]")) return;
+            const cleaned = el.value.replace(/[^0-9\u0660-\u0669\u06F0-\u06F9]/g, "").slice(0, 2);
+            if (cleaned !== el.value) el.value = cleaned;
+        }, true);
+
+        document.getElementById("absenceModal").addEventListener("click", function(e) {
+            if (e.target === this) closeAbsenceModal();
+        });
+        document.getElementById("holidaysModal").addEventListener("click", function(e) {
+            if (e.target === this) closeHolidaysModal();
+        });
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                closeAbsenceModal();
+                closeHolidaysModal();
+            }
+        });
+
+        window.addEventListener("DOMContentLoaded", function() {
+            fillWeekSelects();
+            applyTheme();
+            changeFont(0);
+            onTodayChanged();
+            if (!restoreSaved()) setMode("year");
+            syncTodayFromApi();
+        });
+    </script>
+</body>
+</html>
